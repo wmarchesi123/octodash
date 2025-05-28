@@ -1,0 +1,11 @@
+.env
+.env.example
+.git
+.gitignore
+*.md
+.DS_Store
+k8s-*.yaml
+docker-compose.yml
+Dockerfile
+repomix-output.txt
+repomix.config.json
