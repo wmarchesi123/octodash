@@ -20,13 +20,13 @@ package models
 
 import "fmt"
 
-// PrinterStatus represents the complete status of a printer
+// PrinterStatus represents the dashboard view of a printer
 type PrinterStatus struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
 	OctoPrintURL string                 `json:"octoprint_url"`
-	Status       string                 `json:"status"` // "idle", "printing", "error", "offline"
-	State        string                 `json:"state"`  // Raw state from OctoPrint
+	Status       string                 `json:"status"`
+	State        string                 `json:"state"`
 	Progress     *ProgressInfo          `json:"progress,omitempty"`
 	Temperatures *TemperatureInfo       `json:"temperatures,omitempty"`
 	CurrentSpool map[string]interface{} `json:"current_spool,omitempty"`
@@ -34,17 +34,17 @@ type PrinterStatus struct {
 	Error        string                 `json:"error,omitempty"`
 }
 
-// ProgressInfo represents print progress
+// ProgressInfo represents print progress for the dashboard
 type ProgressInfo struct {
-	Completion     float64 `json:"completion"`      // 0-100
-	PrintTime      int     `json:"print_time"`      // seconds
-	PrintTimeLeft  int     `json:"print_time_left"` // seconds
-	EstimatedTotal int     `json:"estimated_total"` // seconds
+	Completion     float64 `json:"completion"`
+	PrintTime      int     `json:"print_time"`
+	PrintTimeLeft  int     `json:"print_time_left"`
+	EstimatedTotal int     `json:"estimated_total"`
 	FileName       string  `json:"file_name"`
-	FilamentLength float64 `json:"filament_length"` // mm
+	FilamentLength float64 `json:"filament_length"`
 }
 
-// TemperatureInfo represents temperature data
+// TemperatureInfo represents temperature data for the dashboard
 type TemperatureInfo struct {
 	BedActual    float64 `json:"bed_actual"`
 	BedTarget    float64 `json:"bed_target"`
@@ -52,7 +52,7 @@ type TemperatureInfo struct {
 	HotendTarget float64 `json:"hotend_target"`
 }
 
-// FormatDuration converts seconds to a readable format
+// FormatDuration formats seconds into a human-readable duration
 func FormatDuration(seconds int) string {
 	if seconds <= 0 {
 		return "--:--:--"

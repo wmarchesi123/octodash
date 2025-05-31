@@ -30,16 +30,16 @@ import (
 )
 
 func main() {
-	// Default port 8080, can be overridden by PORT env var
+	// Get port from environment or default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Create the handler with all routes
+	// Create handler
 	handler := handlers.NewHandler()
 
-	// Configure server with reasonable timeouts
+	// Configure server
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      handler,
@@ -48,7 +48,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in a goroutine
+	// Start server in goroutine
 	go func() {
 		log.Printf("OctoDash starting on port %s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -56,14 +56,14 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown
+	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
 	log.Println("Shutting down server...")
 
-	// Graceful shutdown with 30 second timeout
+	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

@@ -19,3 +19,5 @@
 module github.com/wmarchesi123/octodash
 
 go 1.22.6
+
+require github.com/wmarchesi123/go-3dprint-client v0.1.0

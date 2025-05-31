@@ -25,13 +25,12 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/wmarchesi123/octodash/internal/config"
+	"github.com/wmarchesi123/go-3dprint-client/config"
+	"github.com/wmarchesi123/go-3dprint-client/octoprint"
+	"github.com/wmarchesi123/go-3dprint-client/spoolman"
 	"github.com/wmarchesi123/octodash/internal/models"
-	"github.com/wmarchesi123/octodash/internal/octoprint"
-	"github.com/wmarchesi123/octodash/internal/spoolman"
 )
 
-// Handler manages HTTP routes and dependencies
 type Handler struct {
 	config           *config.Config
 	mux              *http.ServeMux
@@ -39,9 +38,7 @@ type Handler struct {
 	spoolmanClient   *spoolman.Client
 }
 
-// NewHandler creates a new handler with all routes configured
 func NewHandler() *Handler {
-	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -54,20 +51,17 @@ func NewHandler() *Handler {
 		spoolmanClient:   spoolman.NewClient(cfg.SpoolmanURL),
 	}
 
-	// Create OctoPrint clients for each printer
+	// Initialize OctoPrint clients for each printer
 	for _, printer := range cfg.Printers {
 		h.octoprintClients[printer.ID] = octoprint.NewClient(printer.OctoPrintURL, printer.APIKey)
 	}
 
-	// Set up all routes
 	h.setupRoutes()
-
 	return h
 }
 
-// ServeHTTP implements http.Handler
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Add CORS headers for API calls
+	// CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -80,19 +74,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.mux.ServeHTTP(w, r)
 }
 
-// setupRoutes configures all HTTP routes
 func (h *Handler) setupRoutes() {
-	// Static files (CSS, JS, images)
 	h.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
-
-	// Main dashboard
 	h.mux.HandleFunc("/", h.handleDashboard)
-
-	// API endpoint for printer status (will poll every second)
 	h.mux.HandleFunc("/api/status", h.handleStatus)
 }
 
-// handleDashboard serves the main dashboard HTML
 func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	tmplStr := `
 <!DOCTYPE html>
@@ -125,18 +112,18 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
                     <!-- Printer Image Area -->
                     <div class="printer-image">
                         <!-- Show thumbnail if printing, otherwise stock image -->
-                        <img :src="printer.thumbnail_url || '/static/prusa-mk4s.png'" 
+                        <img :src="printer.thumbnail_url || '/static/prusa-mk4s.png'"
                              :alt="printer.name"
                              @error="$event.target.src = '/static/prusa-mk4s.png'">
                     </div>
-
+                    
                     <!-- Status Area -->
                     <div class="printer-status" :class="'status-' + printer.status">
                         <div class="status-text">
                             <span class="status-label">Status:</span>
                             <span class="status-value" x-text="formatStatus(printer.status)"></span>
                         </div>
-
+                        
                         <!-- Progress Bar (if printing) -->
                         <div x-show="printer.progress" class="progress-section">
                             <div class="progress-bar">
@@ -150,7 +137,7 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 						<!-- Current Spool Info -->
 						<div x-show="printer.current_spool" class="spool-info">
 							<div class="spool-header">
-								<span class="spool-color-dot" 
+								<span class="spool-color-dot"
 									:style="'background-color: ' + (printer.current_spool?.color || '#888')"></span>
 								<div class="spool-title">
 									<div class="spool-name">
@@ -178,7 +165,7 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 								<div class="spool-progress">
 									<svg class="progress-ring" width="80" height="80">
 										<circle class="progress-ring-bg" cx="40" cy="40" r="35" />
-										<circle class="progress-ring-fill" 
+										<circle class="progress-ring-fill"
 												cx="40" cy="40" r="35"
 												:stroke="printer.current_spool?.color || '#888'"
 												:stroke-dasharray="2 * Math.PI * 35"
@@ -188,7 +175,7 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 								</div>
 							</div>
 						</div>
-
+                        
                         <!-- Print Time Info -->
                         <div x-show="printer.progress" class="time-info">
                             <div class="time-item">
@@ -200,7 +187,7 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
                                 <span x-text="formatTime(printer.progress?.print_time_left)"></span>
                             </div>
                         </div>
-
+                        
                         <!-- Temperature Info -->
                         <div x-show="printer.temperatures" class="temp-info">
                             <div class="temp-item">
@@ -234,7 +221,7 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 </html>
 `
 
-	// Prepare printer configuration for frontend
+	// Prepare printer data for the template
 	printers := make([]map[string]string, len(h.config.Printers))
 	for i, p := range h.config.Printers {
 		printers[i] = map[string]string{
@@ -262,12 +249,11 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
-// handleStatus returns current printer status as JSON
 func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
-	// Fetch status for all printers in parallel
 	var wg sync.WaitGroup
 	statusChan := make(chan *models.PrinterStatus, len(h.config.Printers))
 
+	// Fetch status for all printers concurrently
 	for _, printer := range h.config.Printers {
 		wg.Add(1)
 		go func(p config.Printer) {
@@ -277,7 +263,6 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		}(printer)
 	}
 
-	// Wait for all fetches to complete
 	wg.Wait()
 	close(statusChan)
 
@@ -287,9 +272,6 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		printers = append(printers, status)
 	}
 
-	// Sort by printer ID to maintain consistent order
-	// (In a real implementation, you might want to sort by printer.ID)
-
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -298,7 +280,6 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// fetchPrinterStatus fetches status for a single printer
 func (h *Handler) fetchPrinterStatus(printer config.Printer) *models.PrinterStatus {
 	status := &models.PrinterStatus{
 		ID:           printer.ID,
@@ -313,7 +294,7 @@ func (h *Handler) fetchPrinterStatus(printer config.Printer) *models.PrinterStat
 		return status
 	}
 
-	// Fetch printer state and temperatures
+	// Get printer state
 	printerResp, err := client.GetPrinterState()
 	if err != nil {
 		log.Printf("Error fetching printer state for %s: %v", printer.Name, err)
@@ -321,7 +302,7 @@ func (h *Handler) fetchPrinterStatus(printer config.Printer) *models.PrinterStat
 		return status
 	}
 
-	// Set basic status
+	// Determine status
 	if printerResp.State.Flags.Printing {
 		status.Status = "printing"
 	} else if printerResp.State.Flags.Ready {
@@ -329,9 +310,10 @@ func (h *Handler) fetchPrinterStatus(printer config.Printer) *models.PrinterStat
 	} else if printerResp.State.Flags.Error {
 		status.Status = "error"
 	}
+
 	status.State = printerResp.State.Text
 
-	// Set temperatures
+	// Set temperature info
 	status.Temperatures = &models.TemperatureInfo{
 		BedActual:    printerResp.Temperature.Bed.Actual,
 		BedTarget:    printerResp.Temperature.Bed.Target,
@@ -339,7 +321,7 @@ func (h *Handler) fetchPrinterStatus(printer config.Printer) *models.PrinterStat
 		HotendTarget: printerResp.Temperature.Tool0.Target,
 	}
 
-	// If printing, fetch job info
+	// Get job info if printing
 	if status.Status == "printing" {
 		jobResp, err := client.GetJob()
 		if err == nil && jobResp != nil {
