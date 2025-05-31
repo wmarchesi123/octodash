@@ -1,0 +1,377 @@
+/* Copyright 2025 William Marchesi
+
+Author: William Marchesi
+Email: will@marchesi.io
+Website: https://marchesi.io/
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.dashboard {
+    height: 100vh;
+    position: relative;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #333;
+    border-top: 3px solid #ff6b00;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error Message */
+.error-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #d32f2f;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* Printer Grid */
+.printer-grid {
+    display: grid;
+    height: 100vh;
+    padding: 40px;
+    gap: 40px;
+}
+
+/* Grid layouts for different printer counts */
+.printer-grid.printers-1 {
+    grid-template-columns: 1fr;
+}
+
+.printer-grid.printers-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.printer-grid.printers-3,
+.printer-grid.printers-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+/* Printer Card */
+.printer-card {
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid transparent;
+    overflow: hidden;
+}
+
+.printer-card:hover {
+    border-color: #ff6b00;
+    transform: scale(1.02);
+}
+
+.printer-name {
+    margin: 0 0 15px 0;
+    font-size: 1.6em;
+    text-align: center;
+    color: #ff6b00;
+}
+
+.printer-image {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.printer-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Status Section */
+.printer-status {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.status-text {
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.status-label {
+    color: #999;
+    margin-right: 8px;
+}
+
+.status-value {
+    font-weight: 600;
+}
+
+.status-idle .status-value { color: #4caf50; }
+.status-printing .status-value { color: #ff9800; }
+.status-error .status-value { color: #f44336; }
+.status-offline .status-value { color: #666; }
+
+/* Progress Section */
+.progress-section {
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b00, #ff8c00);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+/* Time Info */
+.time-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: center;
+}
+
+.time-item {
+    background: #333;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.time-label {
+    display: block;
+    font-size: 0.85em;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+/* Temperature Info */
+.temp-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.temp-item {
+    background: #333;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.temp-label {
+    display: block;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+}
+
+/* Spool Info */
+.spool-info {
+    background: #333;
+    border-radius: 8px;
+    padding: 16px 16px 16px 16px;
+}
+
+.spool-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spool-color-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+}
+
+.spool-title {
+    flex: 1;
+    text-align: left;
+}
+
+.spool-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.spool-material {
+    color: #bbb;
+}
+
+.spool-vendor {
+    font-size: 0.95em;
+    color: #999;
+}
+
+.spool-stats {
+    font-size: 0.95em;
+    color: #ccc;
+}
+
+.stat-item {
+    white-space: nowrap;
+}
+
+.stat-label {
+    color: #999;
+    margin-right: 4px;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: #fff;
+}
+
+.stat-separator {
+    color: #666;
+    margin: 0 8px;
+}
+
+/* Circular Progress */
+.spool-progress {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: #444;
+    stroke-width: 8;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke-width: 8;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    transform: translate(-50%, -75%);
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+    text-align: center;
+}
+
+/* Return Overlay */
+.return-overlay {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 2000;
+}
+
+.return-button {
+    background: #ff6b00;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.return-button:hover {
+    background: #e55a00;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .printer-card {
+        padding: 15px;
+    }
+    
+    .printer-name {
+        font-size: 1.4em;
+    }
+    
+    .printer-image {
+        height: 150px;
+    }
+}
